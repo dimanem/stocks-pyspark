@@ -35,6 +35,7 @@ window_spec = Window.partitionBy("ticker").orderBy("date")
 # avg daily returns
 data_close_price = df.withColumn("prev_close", lag("close").over(window_spec))
 data_daily_returns = data_close_price.withColumn("daily_return", ((col("close") - col("prev_close")) / col("prev_close")) * 100)
+
 # caching daily returns because it's being used multiple times
 data_daily_returns = data_daily_returns.filter(col("daily_return").isNotNull()).cache()
 average_daily_return = data_daily_returns.groupBy("date").agg(avg("daily_return").alias("average_daily_return"))
@@ -46,18 +47,19 @@ average_frequency = frequency.groupBy("ticker").agg(avg("frequency").alias("aver
 average_frequency.coalesce(1).write.csv(f"{s3_output_path}/02-average_frequency", header=True, mode="overwrite")
 
 # most volatile stocks
-volatility = data_daily_returns.groupBy("ticker").agg(stddev("daily_return").alias("stddev_daily_return"))
-volatility = volatility.withColumn("annualized_stddev", col("stddev_daily_return") * sqrt(TRADING_DAYS))
-volatility = volatility.select("ticker", col("annualized_stddev").alias("standard_deviation"))
+volatility = data_daily_returns.groupBy("ticker").agg((stddev("daily_return") * sqrt(TRADING_DAYS)).alias("standard_deviation"))
 volatility.coalesce(1).write.csv(f"{s3_output_path}/03-volatility", header=True, mode="overwrite")
 
 # top 3 30 day return dates
 window_spec_rank = Window.partitionBy("ticker").orderBy(col("30_day_return").desc())
-data_30_day_return_dates = df.withColumn("prev_30_day_close", lag("close", 30).over(window_spec))
-data_30_day_return_dates = data_30_day_return_dates.withColumn("30_day_return", ((col("close") - col("prev_30_day_close")) / col("prev_30_day_close")) * 100)
-data_30_day_return_dates = data_30_day_return_dates.filter(col("30_day_return").isNotNull())
-data_30_day_return_dates = data_30_day_return_dates.withColumn("rank", rank().over(window_spec_rank))
-top_30_day_return_dates = data_30_day_return_dates.filter(col("rank") <= 3).select("ticker", "date", "30_day_return")
+top_30_day_return_dates = (
+        df.withColumn("prev_30_day_close", lag("close", 30).over(window_spec))
+        .withColumn("30_day_return", ((col("close") - col("prev_30_day_close")) / col("prev_30_day_close")) * 100)
+        .filter(col("30_day_return").isNotNull())
+        .withColumn("rank", rank().over(window_spec_rank))
+        .filter(col("rank") <= 3)
+        .select("ticker", "date", "30_day_return")
+)
 top_30_day_return_dates.coalesce(1).write.csv(f"{s3_output_path}/04-top_30_day_return_dates", header=True, mode="overwrite")
 
 
