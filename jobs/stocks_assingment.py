@@ -28,7 +28,7 @@ s3_output_path = args['S3_OUTPUT_PATH']
 # the code
 TRADING_DAYS = 252
 
-df = spark.read.csv(s3_input_path, header=True, inferSchema=True).cache()
+df = spark.read.csv(s3_input_path, header=True, inferSchema=True)
 
 window_spec = Window.partitionBy("ticker").orderBy("date")
 
