@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create IAM role, policy, and Glue Spark (legacy) job
+
+Resources:
+  # IAM Role for Glue
+  GlueServiceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "AWSGlueServiceRole-StocksAssingment"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "glue.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "AWSGlueServicePolicy-StocksAssingment"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:ListBucket"
+                Resource:
+                  - "arn:aws:s3:::aws-glue-stocks-assignment"
+                  - "arn:aws:s3:::aws-glue-stocks-assignment/*"
+              - Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "arn:aws:logs:*:*:*"
+
+  # Glue Spark (legacy) job
+  GlueSparkJob:
+    Type: "AWS::Glue::Job"
+    Properties:
+      Name: "DimaStocksJob"
+      Role: !GetAtt GlueServiceRole.Arn
+      Command:
+        Name: "glueetl"
+        ScriptLocation: "s3://aws-glue-stocks-assingment-dima/stocks_assingment.py"
+        PythonVersion: "3"
+      DefaultArguments:
+        "--job-language": "python"
+        "--extra-py-files": "s3://aws-glue-stocks-assingment-dima"
+        "--S3_INPUT_PATH": "s3://aws-glue-stocks-assingment-dima/stock_prices.csv"
+        "--S3_OUTPUT_PATH": "s3://aws-glue-stocks-assingment-dima/output"
+      MaxRetries: 1
+      GlueVersion: "1.0"
+      NumberOfWorkers: 2
+      WorkerType: "Standard"
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+
+Outputs:
+  GlueServiceRoleArn:
+    Description: "ARN of the Glue Service Role"
+    Value: !GetAtt GlueServiceRole.Arn
+  GlueSparkJobName:
+    Description: "Name of the Glue Spark (legacy) Job"
+    Value: !Ref GlueSparkJob
