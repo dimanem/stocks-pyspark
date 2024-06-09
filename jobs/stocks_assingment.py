@@ -35,7 +35,6 @@ window_spec = Window.partitionBy("ticker").orderBy("date")
 # avg daily returns
 data_close_price = df.withColumn("prev_close", lag("close").over(window_spec))
 data_daily_returns = data_close_price.withColumn("daily_return", ((col("close") - col("prev_close")) / col("prev_close")) * 100)
-
 # caching daily returns because it's being used multiple times
 data_daily_returns = data_daily_returns.filter(col("daily_return").isNotNull()).cache()
 average_daily_return = data_daily_returns.groupBy("date").agg(avg("daily_return").alias("average_daily_return"))
@@ -50,7 +49,7 @@ average_frequency.coalesce(1).write.csv(f"{s3_output_path}/02-average_frequency"
 volatility = data_daily_returns.groupBy("ticker").agg((stddev("daily_return") * sqrt(TRADING_DAYS)).alias("standard_deviation"))
 volatility.coalesce(1).write.csv(f"{s3_output_path}/03-volatility", header=True, mode="overwrite")
 
-# top 3 30 day return dates
+# top 30 day return dates
 window_spec_rank = Window.partitionBy("ticker").orderBy(col("30_day_return").desc())
 top_30_day_return_dates = (
         df.withColumn("prev_30_day_close", lag("close", 30).over(window_spec))
