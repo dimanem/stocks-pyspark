@@ -1,0 +1,143 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Glue Data Catalog for Stock Data
+
+Resources:
+  # Glue Database
+  GlueDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref "AWS::AccountId"
+      DatabaseInput:
+        Name: dima_database
+        Description: "Glue database for stock data"
+
+  # Glue Table for average_trading_frequency.csv
+  AverageTradingFrequencyTable:
+    Type: AWS::Glue::Table
+    Properties:
+      DatabaseName: !Ref GlueDatabase
+      CatalogId: !Ref "AWS::AccountId"
+      TableInput:
+        Name: average_trading_frequency
+        StorageDescriptor:
+          Columns:
+            - Name: ticker
+              Type: string
+            - Name: average_frequency
+              Type: double
+          Location: s3://aws-glue-stocks-assignment-dima/output/02-average_frequency
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.OpenCSVSerde
+            Parameters:
+              separatorChar: ","
+              escapeChar: "\\"
+              quoteChar: "\""
+          Compressed: false
+          NumberOfBuckets: -1
+          StoredAsSubDirectories: false
+        TableType: EXTERNAL_TABLE
+
+  # Glue Table for stock_volatility.csv
+  StockVolatilityTable:
+    Type: AWS::Glue::Table
+    Properties:
+      DatabaseName: !Ref GlueDatabase
+      CatalogId: !Ref "AWS::AccountId"
+      TableInput:
+        Name: stock_volatility
+        StorageDescriptor:
+          Columns:
+            - Name: ticker
+              Type: string
+            - Name: standard_deviation
+              Type: double
+          Location: s3://aws-glue-stocks-assignment-dima/output/03-volatility
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.OpenCSVSerde
+            Parameters:
+              separatorChar: ","
+              escapeChar: "\\"
+              quoteChar: "\""
+          Compressed: false
+          NumberOfBuckets: -1
+          StoredAsSubDirectories: false
+        TableType: EXTERNAL_TABLE
+
+  # Glue Table for average_daily_return.csv
+  AverageDailyReturnTable:
+    Type: AWS::Glue::Table
+    Properties:
+      DatabaseName: !Ref GlueDatabase
+      CatalogId: !Ref "AWS::AccountId"
+      TableInput:
+        Name: average_daily_return
+        StorageDescriptor:
+          Columns:
+            - Name: date
+              Type: string
+            - Name: average_daily_return
+              Type: double
+          Location: s3://aws-glue-stocks-assignment-dima/output/01-average_daily_return
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.OpenCSVSerde
+            Parameters:
+              separatorChar: ","
+              escapeChar: "\\"
+              quoteChar: "\""
+          Compressed: false
+          NumberOfBuckets: -1
+          StoredAsSubDirectories: false
+        TableType: EXTERNAL_TABLE
+
+  # Glue Table for top_30_day_return_dates.csv
+  Top30DayReturnDatesTable:
+    Type: AWS::Glue::Table
+    Properties:
+      DatabaseName: !Ref GlueDatabase
+      CatalogId: !Ref "AWS::AccountId"
+      TableInput:
+        Name: top_30_day_return_dates
+        StorageDescriptor:
+          Columns:
+            - Name: ticker
+              Type: string
+            - Name: date
+              Type: string
+            - Name: 30_day_return
+              Type: double
+          Location: s3://aws-glue-stocks-assignment-dima/output/04-top_30_day_return_dates
+          InputFormat: org.apache.hadoop.mapred.TextInputFormat
+          OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+          SerdeInfo:
+            SerializationLibrary: org.apache.hadoop.hive.serde2.OpenCSVSerde
+            Parameters:
+              separatorChar: ","
+              escapeChar: "\\"
+              quoteChar: "\""
+          Compressed: false
+          NumberOfBuckets: -1
+          StoredAsSubDirectories: false
+        TableType: EXTERNAL_TABLE
+
+Outputs:
+  GlueDatabaseName:
+    Description: "Name of the Glue database"
+    Value: !Ref GlueDatabase
+  AverageTradingFrequencyTableName:
+    Description: "Name of the Glue table for average_trading_frequency"
+    Value: !Ref AverageTradingFrequencyTable
+  StockVolatilityTableName:
+    Description: "Name of the Glue table for stock_volatility"
+    Value: !Ref StockVolatilityTable
+  AverageDailyReturnTableName:
+    Description: "Name of the Glue table for average_daily_return"
+    Value: !Ref AverageDailyReturnTable
+  Top30DayReturnDatesTableName:
+    Description: "Name of the Glue table for top_30_day_return_dates"
+    Value: !Ref Top30DayReturnDatesTable
