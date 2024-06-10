@@ -43,7 +43,7 @@ average_daily_return.write.mode("overwrite").parquet(f"{s3_output_path}/average_
 
 # avg frequency
 frequency = df.withColumn("frequency", col("close") * col("volume"))
-average_frequency = frequency.groupBy("ticker").agg(avg("frequency").alias("frequency"))
+average_frequency = frequency.groupBy("ticker").agg(avg("frequency"))
 average_frequency.show(10, False)
 average_frequency.write.mode("overwrite").parquet(f"{s3_output_path}/average_frequency")
 
