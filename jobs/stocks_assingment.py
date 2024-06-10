@@ -9,7 +9,7 @@ from awsglue.job import Job
 
 from pyspark.sql import SparkSession, Window
 from pyspark.sql.functions import col
-from pyspark.sql.functions import lag, avg, stddev, rank
+from pyspark.sql.functions import lag, avg, stddev, row_number
 
 ## @params: [JOB_NAME]
 args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_INPUT_PATH', 'S3_OUTPUT_PATH'])
@@ -50,13 +50,12 @@ volatility = data_daily_returns.groupBy("ticker").agg((stddev("daily_return") * 
 volatility.coalesce(1).write.csv(f"{s3_output_path}/03-volatility", header=True, mode="overwrite")
 
 # top 30 day return dates
-window_spec_rank = Window.partitionBy("ticker").orderBy(col("30_day_return").desc())
 top_30_day_return_dates = (
         df.withColumn("prev_30_day_close", lag("close", 30).over(window_spec))
         .withColumn("30_day_return", ((col("close") - col("prev_30_day_close")) / col("prev_30_day_close")) * 100)
         .filter(col("30_day_return").isNotNull())
-        .withColumn("rank", rank().over(window_spec_rank))
-        .filter(col("rank") <= 3)
+        .withColumn("row_number", row_number().over(Window.partitionBy("ticker").orderBy(col("30_day_return").desc())))
+        .filter(col("row_number") <= 3)
         .select("ticker", "date", "30_day_return")
 )
 top_30_day_return_dates.coalesce(1).write.csv(f"{s3_output_path}/04-top_30_day_return_dates", header=True, mode="overwrite")
