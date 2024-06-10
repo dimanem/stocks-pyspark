@@ -38,7 +38,7 @@ data_daily_returns = data_close_price.withColumn("daily_return", ((col("close") 
 # caching daily returns because it's being used multiple times
 data_daily_returns = data_daily_returns.filter(col("daily_return").isNotNull()).cache()
 average_daily_return = data_daily_returns.groupBy("date").agg(avg("daily_return").alias("average_return"))
-average_daily_return.show(10, False)
+average_daily_return.show(50, False)
 average_daily_return.write.mode("overwrite").parquet(f"{s3_output_path}/average_daily_return")
 
 # avg frequency
